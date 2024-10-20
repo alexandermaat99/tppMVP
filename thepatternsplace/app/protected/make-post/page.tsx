@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 export default function MakePostPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [initial_difficulty, setInitialDifficulty] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -27,7 +29,9 @@ export default function MakePostPage() {
     // Insert post with profile_id
     const { data, error } = await supabase
       .from("posts")
-      .insert([{ title, description, profile_id: user.id }]);
+      .insert([
+        { title, description, price, initial_difficulty, profile_id: user.id },
+      ]);
 
     if (error) {
       console.error("Error creating post:", error);
@@ -37,11 +41,24 @@ export default function MakePostPage() {
     }
   };
 
+  const handlePriceInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Regular expression to allow only up to 6 digits and one decimal point
+    const regex = /^\d{0,6}(\.\d{0,2})?$/;
+
+    // If the value matches the regex, update the state
+    if (regex.test(value) || value === "") {
+      setPrice(value);
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto mt-10">
       <h1 className="text-2xl font-bold mb-5">Make a Post</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
+          {/* title for the post  */}
           <label htmlFor="title" className="block mb-1">
             Title
           </label>
@@ -53,6 +70,51 @@ export default function MakePostPage() {
             className="w-full px-3 py-2 border rounded-md"
             required
           />
+        </div>
+
+        {/* price for the post  */}
+        <div className="relative">
+          <label htmlFor="price" className="block mb-1">
+            Price
+          </label>
+
+          {/* Dollar sign positioned in front of the input */}
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            $
+          </span>
+
+          <input
+            type="text"
+            id="price"
+            value={price}
+            onChange={(e) => handlePriceInput(e)}
+            className="w-full pl-8 pr-3 py-2 border rounded-md"
+            placeholder="0.00"
+            maxLength={8} // To account for 6 digits, 1 decimal, and 1 character for the dollar sign
+            required
+          />
+        </div>
+
+        {/* initial_difficulty for the post  */}
+        <div>
+          <label htmlFor="title" className="block mb-1">
+            Difficulty Level
+          </label>
+          <select
+            id="title"
+            value={initial_difficulty}
+            onChange={(e) => setInitialDifficulty(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+          >
+            <option value="" disabled>
+              Select difficulty level
+            </option>
+            <option value="1">Beginner</option>
+            <option value="2">Intermediate</option>
+            <option value="3">Advanced</option>
+            <option value="4">Expert</option>
+          </select>
         </div>
         <div>
           <label htmlFor="description" className="block mb-1">
