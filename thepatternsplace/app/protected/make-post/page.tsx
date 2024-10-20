@@ -9,11 +9,14 @@ export default function MakePostPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [initial_difficulty, setInitialDifficulty] = useState("");
+  const [file, setFile] = useState<File | null>(null); // New state for image file
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploading(true); // Start uploading state
 
     // Get the current user
     const {
@@ -23,21 +26,74 @@ export default function MakePostPage() {
 
     if (userError || !user) {
       console.error("User not authenticated:", userError);
+      setUploading(false);
       return;
     }
 
-    // Insert post with profile_id
-    const { data, error } = await supabase
-      .from("posts")
-      .insert([
-        { title, description, price, initial_difficulty, profile_id: user.id },
-      ]);
+    try {
+      // 1. Insert post with profile_id
+      const { data: postData, error: postError } = await supabase
+        .from("posts")
+        .insert([
+          {
+            title,
+            description,
+            price,
+            initial_difficulty,
+            profile_id: user.id, // Link post to the user's profile
+          },
+        ])
+        .select("id")
+        .single(); // We need to get the post ID
 
-    if (error) {
-      console.error("Error creating post:", error);
-    } else {
-      console.log("Post created successfully:", data);
+      if (postError) {
+        throw new Error(`Error creating post: ${postError.message}`);
+      }
+
+      const postID = postData.id; // Get the newly created post ID
+
+      // 2. Upload image to Supabase storage bucket (if a file was selected)
+      if (file) {
+        const filePath = `public/${Date.now()}-${file.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("images") // Assuming your bucket is named 'images'
+          .upload(filePath, file);
+
+        if (uploadError) {
+          throw new Error(`Image upload failed: ${uploadError.message}`);
+        }
+
+        // 3. Get the public URL of the uploaded image
+        const { data: publicUrlData } = supabase.storage
+          .from("images")
+          .getPublicUrl(filePath);
+
+        const publicURL = publicUrlData.publicUrl;
+
+        // 4. Insert the image URL and post ID into the post_images table
+        const { error: insertError } = await supabase
+          .from("post_images")
+          .insert([
+            {
+              post_id: postID, // Link the image to the post using postID
+              image_url: publicURL, // Store the image URL
+            },
+          ]);
+
+        if (insertError) {
+          throw new Error(`Error storing image URL: ${insertError.message}`);
+        }
+
+        console.log("Post created and image uploaded successfully!");
+      }
+
+      // 5. Redirect after successful post creation
       router.push("/"); // Redirect to home page or post list
+    } catch (error: any) {
+      console.error(error.message);
+      alert(error.message);
+    } finally {
+      setUploading(false); // Stop uploading state
     }
   };
 
@@ -97,11 +153,11 @@ export default function MakePostPage() {
 
         {/* initial_difficulty for the post  */}
         <div>
-          <label htmlFor="title" className="block mb-1">
+          <label htmlFor="difficulty" className="block mb-1">
             Difficulty Level
           </label>
           <select
-            id="title"
+            id="difficulty"
             value={initial_difficulty}
             onChange={(e) => setInitialDifficulty(e.target.value)}
             className="w-full px-3 py-2 border rounded-md"
@@ -116,6 +172,8 @@ export default function MakePostPage() {
             <option value="4">Expert</option>
           </select>
         </div>
+
+        {/* description for the post */}
         <div>
           <label htmlFor="description" className="block mb-1">
             Content
@@ -129,11 +187,29 @@ export default function MakePostPage() {
             required
           ></textarea>
         </div>
+
+        {/* File input for image upload */}
+        <div>
+          <label htmlFor="file" className="block mb-1">
+            Upload Image
+          </label>
+          <input
+            type="file"
+            id="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+          className={`w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 ${
+            uploading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={uploading}
         >
-          Submit Post
+          {uploading ? "Submitting..." : "Submit Post"}
         </button>
       </form>
     </div>
