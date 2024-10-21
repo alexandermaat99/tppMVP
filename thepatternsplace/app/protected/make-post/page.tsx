@@ -113,6 +113,11 @@ export default function MakePostPage() {
     <div className="max-w-md mx-auto mt-10">
       <h1 className="text-2xl font-bold mb-5">Make a Post</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* image for the post  */}
+        <div>
+          <input type="file" name="" id="" />
+        </div>
+
         <div>
           {/* title for the post  */}
           <label htmlFor="title" className="block mb-1">
@@ -135,7 +140,7 @@ export default function MakePostPage() {
           </label>
 
           {/* Dollar sign positioned in front of the input */}
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <span className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
             $
           </span>
 
@@ -145,7 +150,7 @@ export default function MakePostPage() {
             value={price}
             onChange={(e) => handlePriceInput(e)}
             className="w-full pl-8 pr-3 py-2 border rounded-md"
-            placeholder="0.00"
+            placeholder="00.00"
             maxLength={8} // To account for 6 digits, 1 decimal, and 1 character for the dollar sign
             required
           />
@@ -186,20 +191,6 @@ export default function MakePostPage() {
             rows={4}
             required
           ></textarea>
-        </div>
-
-        {/* File input for image upload */}
-        <div>
-          <label htmlFor="file" className="block mb-1">
-            Upload Image
-          </label>
-          <input
-            type="file"
-            id="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-            className="w-full px-3 py-2 border rounded-md"
-          />
         </div>
 
         <button
