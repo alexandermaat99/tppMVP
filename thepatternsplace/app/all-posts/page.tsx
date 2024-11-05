@@ -43,7 +43,7 @@ export default function PostsPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">All Posts</h1>
+      <h1 className="text2xl font-bold mb-6">All Posts</h1>
       <div className="grid grid-cols-4 gap-4">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
