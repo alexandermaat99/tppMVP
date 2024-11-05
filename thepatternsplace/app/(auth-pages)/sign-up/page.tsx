@@ -4,7 +4,6 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
 
 export default function Signup({ searchParams }: { searchParams: Message }) {
   if ("message" in searchParams) {
@@ -36,13 +35,20 @@ export default function Signup({ searchParams }: { searchParams: Message }) {
             minLength={6}
             required
           />
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Input
+            type="password"
+            name="confirmPassword"
+            placeholder="Confirm your password"
+            minLength={6}
+            required
+          />
           <SubmitButton formAction={signUpAction} pendingText="Signing up...">
             Sign up
           </SubmitButton>
           <FormMessage message={searchParams} />
         </div>
       </form>
-      <SmtpMessage />
     </>
   );
 }
