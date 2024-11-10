@@ -17,7 +17,7 @@ export const signUpAction = async (formData: FormData) => {
   }
 
   if (password !== confirmPassword) {
-    return encodedRedirect("error", "/sign-up", "Passwords do not match");
+    return encodedRedirect("success", "/sign-up", "Passwords do not match");
   }
 
   const { error } = await supabase.auth.signUp({
@@ -30,7 +30,7 @@ export const signUpAction = async (formData: FormData) => {
 
   if (error) {
     console.error(error.code + " " + error.message);
-    return encodedRedirect("error", "/sign-up", error.message);
+    return encodedRedirect("error", "/sign-up", "error");
   } else {
     return encodedRedirect(
       "success",
