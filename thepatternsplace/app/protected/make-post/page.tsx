@@ -54,7 +54,7 @@ export default function MakePostPage() {
 
       // 2. Upload image to Supabase storage bucket (if a file was selected)
       if (file) {
-        const filePath = `public/${Date.now()}-${file.name}`;
+        const filePath = `public/${Date.now()}-${encodeURIComponent(file.name)}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("images") // Assuming your bucket is named 'images'
           .upload(filePath, file);
@@ -114,9 +114,10 @@ export default function MakePostPage() {
       <h1 className="text-2xl font-bold mb-5">Make a Post</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* image for the post  */}
-        <div>
-          <input type="file" name="" id="" />
-        </div>
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+        />
 
         <div>
           {/* title for the post  */}
