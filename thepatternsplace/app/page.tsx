@@ -9,13 +9,13 @@ export default function PostsPage() {
   const [loading, setLoading] = useState(true); // To show a loading state
   const supabase = createClient(); // Initialize Supabase client
 
-  // Fetch posts and related profiles from the database when the component mounts
+  // Fetch posts with related profiles and images from the database
   useEffect(() => {
     const fetchPosts = async () => {
-      // Join posts with profiles to get the username
+      // Join posts with profiles to get the username and images
       const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username)"); // Fetch posts with related profiles' username
+        .select("*, profiles(username), post_images(image_url)"); // Adjusted to fetch image URL
 
       if (error) {
         console.error("Error fetching posts:", error.message);
@@ -42,7 +42,7 @@ export default function PostsPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">All Posts</h1>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-10">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}

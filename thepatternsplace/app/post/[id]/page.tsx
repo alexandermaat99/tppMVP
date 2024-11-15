@@ -13,6 +13,9 @@ interface Post {
   profiles?: {
     username: string;
   };
+  post_images?: {
+    image_url: string;
+  }[]; // Array to store images
 }
 
 export default function PostDetailsPage({
@@ -30,7 +33,7 @@ export default function PostDetailsPage({
     const fetchPost = async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select("*, profiles(username)")
+        .select("*, profiles(username), post_images(image_url)")
         .eq("id", params.id)
         .single();
 
@@ -48,6 +51,12 @@ export default function PostDetailsPage({
   if (loading) return <p>Loading...</p>;
   if (error || !post) return <p>Post not found</p>;
 
+  // Get the first image URL, if available
+  const imageUrl =
+    post.post_images && post.post_images.length > 0
+      ? post.post_images[0].image_url
+      : null;
+
   return (
     <div className="max-w-2xl mx-auto p-4">
       <button
@@ -57,6 +66,13 @@ export default function PostDetailsPage({
         ← Back
       </button>
       <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={post.title}
+          className="w-full h-64 object-cover rounded mb-4"
+        />
+      )}
       <p className="text-gray-700 mb-2">Price: ${post.price}</p>
       <p className="text-gray-700 mb-2">
         Posted by: {post.profiles?.username || "Unknown"}

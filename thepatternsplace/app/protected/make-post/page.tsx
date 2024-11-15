@@ -54,7 +54,12 @@ export default function MakePostPage() {
 
       // 2. Upload image to Supabase storage bucket (if a file was selected)
       if (file) {
-        const filePath = `public/${Date.now()}-${encodeURIComponent(file.name)}`;
+        // Get file extension
+        const fileExtension = file.name.split(".").pop();
+        // Create a unique filename with a timestamp
+        const newFileName = `${Date.now()}.${fileExtension}`;
+        const filePath = `public/${newFileName}`;
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("images") // Assuming your bucket is named 'images'
           .upload(filePath, file);
