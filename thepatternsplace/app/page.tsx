@@ -1,40 +1,75 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/utils/supabase/client"; // Replace with your Supabase client path
-import PostCard from "@/components/post"; // Replace with your PostCard component path
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import PostCard from "@/components/post";
 
 export default function PostsPage() {
-  const [posts, setPosts] = useState<any[]>([]); // To store posts data
-  const [loading, setLoading] = useState(true); // To show a loading state
-  const supabase = createClient(); // Initialize Supabase client
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const supabase = createClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Fetch posts with related profiles and images from the database
+  const POSTS_PER_PAGE = 12;
+
+  useEffect(() => {
+    const restoreScrollPosition = () => {
+      const savedScrollPosition = localStorage.getItem("scrollPosition");
+      if (savedScrollPosition) {
+        window.scrollTo(0, parseInt(savedScrollPosition, 10));
+        localStorage.removeItem("scrollPosition");
+      }
+    };
+
+    const timer = setTimeout(restoreScrollPosition, 0);
+
+    return () => clearTimeout(timer);
+  }, [posts]);
+
   useEffect(() => {
     const fetchPosts = async () => {
-      // Join posts with profiles to get the username and images
-      const { data, error } = await supabase
+      setLoading(true);
+
+      const currentPage = parseInt(searchParams?.get("page") || "1", 10);
+      setPage(currentPage);
+
+      const start = (currentPage - 1) * POSTS_PER_PAGE;
+      const end = start + POSTS_PER_PAGE - 1;
+
+      const { data, error, count } = await supabase
         .from("posts")
-        .select("*, profiles(username), post_images(image_url)"); // Adjusted to fetch image URL
+        .select("*, profiles(username), post_images(image_url)", {
+          count: "exact",
+        })
+        .range(start, end);
 
       if (error) {
         console.error("Error fetching posts:", error.message);
       } else {
-        setPosts(data); // Store posts data in state
+        setPosts(data);
+        setTotalPages(Math.ceil((count ?? 0) / POSTS_PER_PAGE));
       }
 
-      setLoading(false); // Turn off loading state
+      setLoading(false);
     };
 
     fetchPosts();
-  }, [supabase]);
+  }, [searchParams, supabase]);
 
-  // If data is still loading, show a loading state
+  const handlePageChange = (newPage: number) => {
+    localStorage.setItem("currentPage", newPage.toString());
+    localStorage.setItem("scrollPosition", "0");
+    router.push(`/?page=${newPage}`);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  // If no posts are found, display a message
   if (posts.length === 0) {
     return <div>No posts found.</div>;
   }
@@ -46,6 +81,28 @@ export default function PostsPage() {
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
+      </div>
+      <div className="flex justify-center mt-6 space-x-4">
+        <button
+          disabled={page === 1}
+          onClick={() => handlePageChange(page - 1)}
+          className={`px-4 py-2 rounded bg-gray-300 ${
+            page === 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-400"
+          }`}
+        >
+          Previous
+        </button>
+        <button
+          disabled={page === totalPages}
+          onClick={() => handlePageChange(page + 1)}
+          className={`px-4 py-2 rounded bg-gray-300 ${
+            page === totalPages
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-gray-400"
+          }`}
+        >
+          Next
+        </button>
       </div>
     </div>
   );
