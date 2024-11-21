@@ -1,65 +1,98 @@
+//The logic is to pull data
+// populate fields with the data
+// update the fields
+// update the database
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
-import { signOutAction } from "@/app/actions";
-import { Button } from "@/components/ui/button";
+
+//step 1 start with export default function
+//step 2 add the form and fields
+//step 3 add bring in the field data from the database
+//step 4 add the logic to update the database, handleSubmit
 
 export default function ProfilePage() {
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const supabase = createClient();
+  const [patternPoints, setPatternPoints] = useState();
 
-  // Fetch the logged-in user's profile data
+  //runs once when the component mounts
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // Get the current logged-in user
         const { data: user, error: userError } = await supabase.auth.getUser();
         if (userError) throw new Error(userError.message);
 
-        // Fetch the profile data
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("username, email, avatar_url")
+          .select("username, email, pattern_points")
           .eq("id", user?.user.id)
           .single();
         if (profileError) throw new Error(profileError.message);
 
-        // Set the state with fetched data
         setUsername(profile.username);
         setEmail(profile.email);
-        setAvatarUrl(profile.avatar_url);
-      } catch (err: any) {
-        console.error(err.message);
+        setPatternPoints(profile.pattern_points);
+      } catch (error: any) {
+        console.error(error.message);
         setError("Failed to fetch profile data. Please try again.");
       } finally {
         setLoading(false);
       }
     };
-
+    //fetch profile end at this bracket
     fetchProfile();
   }, []);
+  //brackets tells react to run this function only once
 
-  // Handle form submission to update the user's profile
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    //e.preventDefault() prevents the form from submitting and refreshing the page
     setLoading(true);
-    try {
-      // Update the profile in the database
-      const { data: user } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("profiles")
-        .update({ username, email, avatar_url: avatarUrl })
-        .eq("id", user?.user?.id ?? "");
-      if (error) throw new Error(error.message);
+    //while this code is running, the loading state is set to true
 
-      alert("Profile updated successfully!");
+    try {
+      // Check if the username is empty
+      if (!username.trim()) {
+        alert("Username cannot be empty. Please enter a valid username.");
+        return; // Stop further execution
+      }
+
+      // Fetch the current user
+      const { data: user } = await supabase.auth.getUser();
+
+      // Check if the username is already taken
+      const { data: existingUser, error: fetchError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .neq("id", user?.user?.id) // Ensure it’s not the current user’s username
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        // Ignore "No rows found" errors
+        throw new Error(fetchError.message);
+      }
+
+      if (existingUser) {
+        alert("This username is already taken. Please choose another one.");
+        return; // Stop further execution
+      }
+
+      // Update the profile in the database
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ username, email })
+        .eq("id", user?.user?.id ?? "");
+
+      if (updateError) throw new Error(updateError.message);
+
+      alert("Profile updated successfully");
     } catch (err: any) {
       console.error(err.message);
       setError("Failed to update profile. Please try again.");
@@ -68,111 +101,63 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle avatar upload
-  const handleAvatarUpload = async (file: File) => {
-    try {
-      if (!file) return;
-      const fileName = `${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
-        .from("avatars") // Ensure you have created the "avatars" storage bucket
-        .upload(fileName, file);
-
-      if (error) throw new Error(error.message);
-
-      // Get the public URL of the uploaded avatar
-      const { data: publicUrl } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
-
-      setAvatarUrl(publicUrl.publicUrl);
-    } catch (err: any) {
-      console.error(err.message);
-      setError("Failed to upload avatar. Please try again.");
-    }
-  };
-
-  // Handle logout
-  //   const handleLogout = async () => {
-  //     try {
-  //       await supabase.auth.signOut();
-  //       router.push("/"); // Redirect to the homepage after logout
-  //     } catch (err: any) {
-  //       console.error("Error logging out:", err.message);
-  //     }
-  //   };
-
   if (loading) return <p>Loading...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-4">Your Profile</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="username" className="block text-sm font-medium">
-            Username
-          </label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="avatar" className="block text-sm font-medium">
-            Avatar
-          </label>
-          {avatarUrl && (
-            <img
-              src={avatarUrl}
-              alt="Avatar"
-              className="w-20 h-20 rounded-full mb-2"
-            />
-          )}
-          <input
-            type="file"
-            id="avatar"
-            accept="image/*"
-            onChange={(e) =>
-              e.target.files && handleAvatarUpload(e.target.files[0])
-            }
-            className="w-full px-3 py-2 border rounded"
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value.toLowerCase())}
+          // e.target.value is the value of the input field
+
+          className="w-full px-3 py-2 border rounded"
+        />
+        <label htmlFor="email">Email</label>
+        <input
+          type="email"
+          id="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          // e.target.value is the value of the input field
+          className="w-full px-3 py-2 border rounded"
+        />
+
+        <label htmlFor="patternPoints">Pattern Points</label>
+        <p>{patternPoints}</p>
+
+        {/* link for changing password */}
         <button
           type="submit"
           className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
         >
           {loading ? "Saving..." : "Save Changes"}
+          {/* if loading is true, the button will say "Saving..." */}
         </button>
-      </form>
-      {/* <button
-        // onClick={handleLogout}
-        className="mt-4 w-full bg-red-500 text-white py-2 rounded hover:bg-red-600"
-      >
-        Logout
-      </button> */}
-      <form action={signOutAction}>
-        <Button type="submit" variant={"outline"}>
-          Sign out
-        </Button>
       </form>
     </div>
   );
 }
+// {
+//   error && <p className="text-red-500">{error}</p>;
+// }
+// {
+//   loading ? (
+//     <p>Loading...</p>
+//   ) : (
+//     <>
+//       <label htmlFor="email">Email</label>
+//       <label htmlFor="email">Email</label>
+//       <input
+//         type="email"
+//         id="email"
+//         value={email}
+//         className="w-full px-3 py-2 border rounded"
+//       />
+//     </>
+//   );
+// }
