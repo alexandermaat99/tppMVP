@@ -63,9 +63,7 @@ export default function PostDetailsPage({
   }, [params.id, supabase]);
 
   const handleBackToHome = () => {
-    localStorage.setItem("scrollPosition", window.scrollY.toString());
-    const currentPage = localStorage.getItem("currentPage") || "1";
-    router.push(`/?page=${currentPage}`);
+    router.push("/");
   };
 
   if (loading) return <p>Loading...</p>;

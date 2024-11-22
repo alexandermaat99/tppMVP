@@ -66,11 +66,64 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleBackToHome = () => {
+    router.push("/");
+  };
+
+  const handleDelete = async () => {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this post? This action cannot be undone."
+    );
+
+    if (confirmDelete) {
+      try {
+        // Delete associated post_images
+        const { error: deleteImagesError } = await supabase
+          .from("post_images")
+          .delete()
+          .eq("post_id", params.id);
+
+        if (deleteImagesError) {
+          console.error(
+            "Error deleting post images:",
+            deleteImagesError.message
+          );
+          alert("Failed to delete the associated images.");
+          return;
+        }
+
+        // Delete the post
+        const { error: deletePostError } = await supabase
+          .from("posts")
+          .delete()
+          .eq("id", params.id);
+
+        if (deletePostError) {
+          console.error("Error deleting post:", deletePostError.message);
+          alert("Failed to delete the post.");
+          return;
+        }
+
+        alert("Post deleted successfully!");
+        router.push("/"); // Redirect to the homepage after deletion
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        alert("An unexpected error occurred.");
+      }
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
 
   return (
     <div className="max-w-2xl mx-auto p-4">
+      <button
+        onClick={handleBackToHome}
+        className="mb-4 text-blue-500 underline"
+      >
+        ← Back to Home
+      </button>
       <h1 className="text-2xl font-bold mb-4">Edit Post</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -143,6 +196,13 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
           className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
         >
           Update Post
+        </button>
+
+        <button
+          onClick={handleDelete}
+          className="w-full bg-red-500 text-white py-2 rounded mt-4 hover:bg-red-600"
+        >
+          Delete Post
         </button>
       </form>
     </div>
