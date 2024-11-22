@@ -10,6 +10,7 @@ export default function MakePostPage() {
   const [price, setPrice] = useState("");
   const [initial_difficulty, setInitialDifficulty] = useState("");
   const [file, setFile] = useState<File | null>(null); // New state for image file
+  const [pattern, setPattern] = useState<File | null>(null); // New state for pattern file
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -91,6 +92,44 @@ export default function MakePostPage() {
 
         console.log("Post created and image uploaded successfully!");
       }
+      if (pattern) {
+        // Extract file extension
+        const fileExtension = pattern.name.split(".").pop();
+        // Create a unique file name
+        const newFileName = `pattern_${Date.now()}.${fileExtension}`;
+        // Specify the file path in the storage bucket
+        const filePath = `patterns/${newFileName}`;
+
+        // Upload the file to Supabase storage bucket
+        const { data: patternUploadData, error: patternUploadError } =
+          await supabase.storage
+            .from("patterns") // Assuming your bucket is named 'patterns'
+            .upload(filePath, pattern);
+
+        if (patternUploadError) {
+          throw new Error(
+            `Pattern upload failed: ${patternUploadError.message}`
+          );
+        }
+
+        //get the puiblic url of the uploaded pattern
+        const { data: publicUrlData } = supabase.storage
+          .from("patterns")
+          .getPublicUrl(filePath);
+
+        const publicURL = publicUrlData.publicUrl;
+
+        const { error: insertError } = await supabase
+          .from("posts")
+          .update({ file_download: publicURL }) // Store the pattern URL
+          .eq("id", postID); // Link the pattern to the post using postID
+
+        if (insertError) {
+          throw new Error(`Error storing pattern URL: ${insertError.message}`);
+        }
+
+        console.log("Pattern uploaded successfully!");
+      }
 
       // 5. Redirect after successful post creation
       router.push("/"); // Redirect to home page or post list
@@ -119,9 +158,24 @@ export default function MakePostPage() {
       <h1 className="text-2xl font-bold mb-5">Make a Post</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* image for the post  */}
+        <label htmlFor="image" className="block mb-1">
+          Upload an Image
+        </label>
         <input
           type="file"
+          id="image"
           onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+        />
+
+        <label htmlFor="pattern" className="block mb-1">
+          Upload your Pattern PDF
+        </label>
+        <input
+          type="file"
+          id="pattern"
+          onChange={(e) =>
+            setPattern(e.target.files ? e.target.files[0] : null)
+          }
         />
 
         <div>
