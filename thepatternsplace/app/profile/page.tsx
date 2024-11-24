@@ -7,6 +7,8 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { signOutAction } from "@/app/actions";
+import { Button } from "@/components/ui/button";
 
 //step 1 start with export default function
 //step 2 add the form and fields
@@ -138,6 +140,11 @@ export default function ProfilePage() {
           {loading ? "Saving..." : "Save Changes"}
           {/* if loading is true, the button will say "Saving..." */}
         </button>
+      </form>
+      <form action={signOutAction}>
+        <Button type="submit" variant={"outline"}>
+          Sign out
+        </Button>
       </form>
     </div>
   );
