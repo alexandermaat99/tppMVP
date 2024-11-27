@@ -59,6 +59,11 @@ export default function ProfilePage() {
     //while this code is running, the loading state is set to true
 
     try {
+      // check if the username has spaces
+      if (/\s/.test(username)) {
+        alert("Username cannot contain spaces. Please enter a valid username.");
+        return; // Stop further execution
+      }
       // Check if the username is empty
       if (!username.trim()) {
         alert("Username cannot be empty. Please enter a valid username.");
@@ -114,7 +119,9 @@ export default function ProfilePage() {
           type="text"
           id="username"
           value={username}
-          onChange={(e) => setUsername(e.target.value.toLowerCase())}
+          onChange={(e) =>
+            setUsername(e.target.value.replace(/\s/g, "").toLowerCase())
+          }
           // e.target.value is the value of the input field
 
           className="w-full px-3 py-2 border rounded"
